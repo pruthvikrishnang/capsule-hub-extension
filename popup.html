@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Capsule Hub</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header>
+      <div class="logo-area">
+        <img src="icon.svg" alt="Capsule Hub Logo" class="header-logo">
+        <div class="logo-text">
+          <h1>Capsule Hub</h1>
+          <span class="tagline">AI Context Bridge</span>
+        </div>
+      </div>
+      <div id="connection-status" class="status-pill status-idle">
+        <span class="pulse-dot"></span>
+        <span id="status-text">Detecting page...</span>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main>
+      <!-- Screen 1: No active session / Unsupported site -->
+      <section id="unsupported-view" class="view hidden">
+        <div class="welcome-card">
+          <div class="welcome-icon">⚡</div>
+          <h3>Bridge Your Conversations</h3>
+          <p>Open one of the supported AI chats to capture your conversation context automatically:</p>
+          <div class="provider-launchpad">
+            <a href="https://chatgpt.com" target="_blank" class="launch-btn chatgpt-theme">
+              <span class="launch-icon">🤖</span> ChatGPT
+            </a>
+            <a href="https://claude.ai" target="_blank" class="launch-btn claude-theme">
+              <span class="launch-icon">🎨</span> Claude
+            </a>
+            <a href="https://gemini.google.com" target="_blank" class="launch-btn gemini-theme">
+              <span class="launch-icon">✨</span> Gemini
+            </a>
+            <a href="https://chat.deepseek.com" target="_blank" class="launch-btn deepseek-theme">
+              <span class="launch-icon">🐳</span> DeepSeek
+            </a>
+          </div>
+          <div class="divider"><span>or</span></div>
+          <div class="manual-entry">
+            <label for="manual-text">Paste text manually to bridge:</label>
+            <textarea id="manual-text" placeholder="Paste custom context or prompts here..."></textarea>
+            <button id="manual-bridge-btn" class="action-btn primary-glow-btn">
+              Prepare Manual Context
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 2: Context Captured -->
+      <section id="captured-view" class="view">
+        <!-- Source Details -->
+        <div class="source-info-bar">
+          <span class="info-label">Captured from:</span>
+          <span id="source-badge" class="source-badge">AI Tool</span>
+          <span id="message-count-badge" class="count-badge">0 turns</span>
+        </div>
+
+        <!-- Scrollable Messages List -->
+        <div class="section-title">
+          <span>Select turns to bridge</span>
+          <div class="title-actions">
+            <button id="select-all-btn" class="text-link-btn">Select All</button>
+            <span class="sep">|</span>
+            <button id="select-last-btn" class="text-link-btn">Last Turn Only</button>
+          </div>
+        </div>
+
+        <div id="messages-list" class="messages-scroll-container">
+          <!-- Populated programmatically -->
+        </div>
+
+        <!-- Format Options -->
+        <div class="options-container">
+          <label class="switch-container">
+            <input type="checkbox" id="add-summary-prompt" checked>
+            <span class="slider"></span>
+            <span class="switch-label">Include bridge header instruction</span>
+          </label>
+        </div>
+
+        <!-- Target Destination Selection -->
+        <div class="destination-section">
+          <h3>Continue this conversation in:</h3>
+          <div class="target-grid">
+            <button class="target-btn chatgpt-btn" data-target="chatgpt" data-url="https://chatgpt.com">
+              <span class="target-logo">💬</span>
+              <span class="target-name">ChatGPT</span>
+            </button>
+            <button class="target-btn claude-btn" data-target="claude" data-url="https://claude.ai">
+              <span class="target-logo">🎭</span>
+              <span class="target-name">Claude</span>
+            </button>
+            <button class="target-btn gemini-btn" data-target="gemini" data-url="https://gemini.google.com">
+              <span class="target-logo">✨</span>
+              <span class="target-name">Gemini</span>
+            </button>
+            <button class="target-btn deepseek-btn" data-target="deepseek" data-url="https://chat.deepseek.com">
+              <span class="target-logo">🐳</span>
+              <span class="target-name">DeepSeek</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Secondary Actions -->
+        <div class="popup-actions">
+          <button id="copy-clipboard-btn" class="action-btn secondary-btn">
+            <span class="btn-icon">📋</span> Copy Raw Context
+          </button>
+          <button id="clear-session-btn" class="action-btn text-btn">
+            Clear Context
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+      <div id="footer-message">Ready to bridge context</div>
+      <div class="version-label">v1.0.0</div>
+    </footer>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
