@@ -77,3 +77,4 @@ Capsule Hub includes pre-configured selectors and injection paths for:
 4. Deselect any turns you don't need, toggle **Include bridge header instruction** if desired.
 5. Click one of the destination buttons (e.g., **ChatGPT**).
 6. A new tab opens automatically, populates the input bar with your context, focuses the field, and flashes a success toast. Simply review the text and hit **Enter**!
+
