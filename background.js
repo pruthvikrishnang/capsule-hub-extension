@@ -5,6 +5,7 @@ console.log("Capsule Hub background service worker initialized.");
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "openTabAndInject") {
     const { url, targetAI } = message;
+
     
     // Create new tab with the target AI tool
     chrome.tabs.create({ url: url }, (tab) => {
