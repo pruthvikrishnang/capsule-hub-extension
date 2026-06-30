@@ -1,4 +1,4 @@
-﻿// Popup logic for Capsule Hub
+// Popup logic for Capsule Hub
 document.addEventListener("DOMContentLoaded", () => {
   // Elements
   const statusPill = document.getElementById("connection-status");
@@ -191,6 +191,146 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Generate formatted context string based on selected turns
+  function generateFormattedContext() {
+    if (!extractedSession || !extractedSession.messages) return "";
 
+    const selectedCheckboxes = Array.from(document.querySelectorAll(".message-checkbox:checked"));
+    if (selectedCheckboxes.length === 0) return "";
+
+    // Sort checkboxes by index
+    selectedCheckboxes.sort((a, b) => parseInt(a.dataset.idx) - parseInt(b.dataset.idx));
+
+    let contextBody = "";
+    selectedCheckboxes.forEach(box => {
+      const idx = parseInt(box.dataset.idx);
+      const msg = extractedSession.messages[idx];
+      const sender = msg.role === "user" ? "User" : "AI Assistant";
+      contextBody += `\n[${sender}]:\n${msg.text}\n`;
+    });
+
+    const includeHeader = addSummaryPromptCheckbox.checked;
+    if (includeHeader) {
+      const source = extractedSession.providerName;
+      return `[Context Transfer: The following conversation log was captured from ${source} via Capsule Hub. Please digest this context and continue the conversation seamlessly.]\n--------------------------------------------${contextBody}--------------------------------------------\n[End of Context. Please confirm you understand the context above and respond to the last User prompt if applicable, or ask how you can help next.]`;
+    }
+
+    return contextBody.trim();
+  }
+
+  // Copy selected context to clipboard
+  function copyContextToClipboard() {
+    const text = generateFormattedContext();
+    if (!text) {
+      showFooterMessage("No messages selected to copy!", "error");
+      return;
+    }
+
+    navigator.clipboard.writeText(text).then(() => {
+      showFooterMessage("Context copied to clipboard!", "success");
+      
+      // Pulse badge success
+      chrome.runtime.sendMessage({ action: "updateBadge", text: "✓", color: "#06b6d4" });
+      setTimeout(() => {
+        chrome.runtime.sendMessage({ action: "updateBadge", text: "" });
+      }, 2000);
+    }).catch(err => {
+      console.error("Clipboard copy failed:", err);
+      showFooterMessage("Failed to copy to clipboard.", "error");
+    });
+  }
+
+  // Clear current active/saved session
+  function clearCurrentSession() {
+    extractedSession = null;
+    chrome.storage.local.remove(["savedSession", "pendingContext"], () => {
+      showUnsupportedView();
+      showStatus("Session cleared", "idle");
+      showFooterMessage("Session cleared successfully");
+      chrome.runtime.sendMessage({ action: "updateBadge", text: "" });
+    });
+  }
+
+  // Handle manual context bridging
+  function handleManualBridge() {
+    const text = manualText.value.trim();
+    if (!text) {
+      showFooterMessage("Please enter some text first!", "error");
+      return;
+    }
+
+    const manualResponse = {
+      success: true,
+      provider: "manual",
+      providerName: "Manual Input",
+      messages: [{ role: "user", text: text }]
+    };
+
+    extractedSession = manualResponse;
+    chrome.storage.local.set({ savedSession: manualResponse });
+    displaySession(manualResponse);
+    showStatus("Manual context ready", "active");
+    showFooterMessage("Context loaded from manual entry!");
+    manualText.value = ""; // Clear input
+  }
+
+  // Bridge the context into the target AI tool
+  function bridgeToTarget(targetAI, url) {
+    const text = generateFormattedContext();
+    if (!text) {
+      showFooterMessage("Please select at least one message turn!", "error");
+      return;
+    }
+
+    showFooterMessage(`Connecting to ${targetAI.toUpperCase()}...`);
+
+    // 1. Save pending context with timestamp
+    const pendingContext = {
+      targetAI: targetAI,
+      text: text,
+      timestamp: Date.now()
+    };
+
+    chrome.storage.local.set({ pendingContext: pendingContext }, () => {
+      // 2. Request background service worker to open a new tab
+      chrome.runtime.sendMessage({
+        action: "openTabAndInject",
+        url: url,
+        targetAI: targetAI
+      }, (response) => {
+        if (response && response.success) {
+          showFooterMessage(`Bridged! Injecting context in target... 🚀`);
+          
+          // Flash badge to show bridge in progress
+          chrome.runtime.sendMessage({ action: "updateBadge", text: ">>", color: "#8b5cf6" });
+          
+          setTimeout(() => {
+            window.close(); // Close extension popup
+          }, 1000);
+        } else {
+          showFooterMessage(`Failed to launch ${targetAI}. Copying instead...`, "error");
+          copyContextToClipboard();
+        }
+      });
+    });
+  }
+
+  // Helper to show temporary messages in the footer
+  function showFooterMessage(text, type = "info") {
+    footerMessage.innerText = text;
+    
+    if (type === "error") {
+      footerMessage.style.color = "#f87171"; // Light red
+    } else if (type === "success") {
+      footerMessage.style.color = "#34d399"; // Light green
+    } else {
+      footerMessage.style.color = "var(--text-secondary)";
+    }
+
+    // Reset after 3.5 seconds
+    setTimeout(() => {
+      footerMessage.innerText = "Ready to bridge context";
+      footerMessage.style.color = "var(--text-muted)";
+    }, 3500);
+  }
 });
-
