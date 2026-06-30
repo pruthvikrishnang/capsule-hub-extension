@@ -1,0 +1,55 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e1b4b" />
+    </linearGradient>
+    
+    <!-- Capsule Gradient -->
+    <linearGradient id="capsuleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    
+    <!-- Glow Filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Outer Rounded Square Background -->
+  <rect width="128" height="128" rx="32" fill="url(#bgGrad)" />
+
+  <!-- Background Decorative Grid Circles -->
+  <circle cx="64" cy="64" r="54" stroke="#334155" stroke-width="1" stroke-dasharray="4 4" opacity="0.3" />
+  <circle cx="64" cy="64" r="44" stroke="#334155" stroke-width="1" stroke-dasharray="2 2" opacity="0.2" />
+
+  <!-- Outer Glow Group -->
+  <g filter="url(#glow)">
+    <!-- Capsule Outer Shell -->
+    <rect x="24" y="44" width="80" height="40" rx="20" fill="url(#capsuleGrad)" />
+    
+    <!-- Left Capsule Half Overlay (for distinct capsule division look) -->
+    <path d="M24 64C24 53.0 32.9 44 44 44H64V84H44C32.9 84 24 75.0 24 64Z" fill="black" opacity="0.15" />
+    
+    <!-- Capsule Center Connecting Bridge -->
+    <rect x="62" y="44" width="4" height="40" fill="#ffffff" opacity="0.2" />
+    
+    <!-- Transfer Nodes / Arrows -->
+    <!-- Left Node (Input) -->
+    <circle cx="46" cy="64" r="7" fill="#ffffff" />
+    <circle cx="46" cy="64" r="3" fill="#8b5cf6" />
+
+    <!-- Right Node (Output) -->
+    <circle cx="82" cy="64" r="7" fill="#ffffff" />
+    <polygon points="80,60 87,64 80,68" fill="#06b6d4" />
+
+    <!-- Bridge Path (Connecting Line) -->
+    <path d="M53 64H75" stroke="#ffffff" stroke-width="2.5" stroke-dasharray="2 2" stroke-linecap="round" />
+  </g>
+
+  <!-- Sleek Glowing Overlay -->
+  <rect x="25" y="45" width="78" height="38" rx="19" stroke="#ffffff" stroke-width="1" opacity="0.15" />
+</svg>
