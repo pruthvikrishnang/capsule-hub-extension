@@ -1,4 +1,4 @@
-﻿// Content script for Capsule Hub - running on AI chat sites
+// Content script for Capsule Hub - running on AI chat sites
 console.log("Capsule Hub content script loaded on", window.location.hostname);
 
 // Provider configuration mapping
@@ -127,13 +127,198 @@ function extractConversation() {
   };
 }
 
+// Inject text into the target input element
+function injectText(element, text) {
+  element.focus();
+  
+  // Method 1: Using execCommand (supports rich text and most frameworks cleanly)
+  try {
+    // Select any existing text in focus
+    document.execCommand('selectall', false, null);
+    document.execCommand('insertText', false, text);
+    console.log("Injected context via execCommand");
+    return true;
+  } catch (e) {
+    console.warn("execCommand failed, attempting direct DOM event simulation...", e);
+  }
 
-// Message listener for popup requests
+  // Method 2: Direct value assignment and React/Vue event dispatch
+  try {
+    const isValueProperty = element.tagName === 'TEXTAREA' || element.tagName === 'INPUT';
+    
+    if (isValueProperty) {
+      // Bypass React's overridden value setter if applicable
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLTextAreaElement.prototype, 
+        "value"
+      )?.set || Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype, 
+        "value"
+      )?.set;
+
+      if (nativeInputValueSetter) {
+        nativeInputValueSetter.call(element, text);
+      } else {
+        element.value = text;
+      }
+      
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+      element.dispatchEvent(new Event('change', { bubbles: true }));
+    } else {
+      // Contenteditable divs
+      element.innerText = text;
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    console.log("Injected context via event simulation");
+    return true;
+  } catch (e) {
+    console.error("Failed to inject text:", e);
+    return false;
+  }
+}
+
+// Periodically look for input box and inject context
+function startInjectionPolling(text) {
+  const providerKey = detectCurrentProvider();
+  if (!providerKey) return;
+
+  const provider = PROVIDERS[providerKey];
+  let attempts = 0;
+  const maxAttempts = 30; // 15 seconds max
+
+  console.log(`Starting injection polling for ${provider.name}...`);
+
+  const pollInterval = setInterval(() => {
+    attempts++;
+    
+    // Find the input field
+    const inputElement = document.querySelector(provider.selectors.input);
+    
+    if (inputElement) {
+      clearInterval(pollInterval);
+      console.log("Found input element. Injecting context...");
+      
+      setTimeout(() => {
+        const success = injectText(inputElement, text);
+        if (success) {
+          showToast(`Context bridge active! Capsule Hub injected your session. 🚀`);
+          // Clear context from storage so it doesn't inject again on refresh
+          chrome.storage.local.remove('pendingContext');
+        } else {
+          showToast(`Context bridge ready. Please paste (Ctrl+V) manually! 📋`, "warning");
+        }
+      }, 500); // Small buffer to ensure editor listeners are registered
+    }
+
+    if (attempts >= maxAttempts) {
+      clearInterval(pollInterval);
+      console.warn("Input element not found after 15 seconds. Creating fallback paste option.");
+      showToast("Capsule Hub: Input area not found. Context copied to clipboard instead!", "warning");
+      
+      // Copy to clipboard as a last resort fallback
+      navigator.clipboard.writeText(text).catch(err => console.error("Clipboard copy failed: ", err));
+    }
+  }, 500);
+}
+
+// Inject styling and display toast message in the UI
+function showToast(message, type = "success") {
+  // Remove existing toast if any
+  const existing = document.getElementById('capsule-hub-toast');
+  if (existing) existing.remove();
+
+  // Create toast container
+  const toast = document.createElement('div');
+  toast.id = 'capsule-hub-toast';
+  
+  // Custom styling
+  const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  
+  // Colors based on type
+  const themeColors = {
+    success: {
+      bg: "linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)",
+      border: "#22d3ee",
+      shadow: "rgba(6, 182, 212, 0.4)"
+    },
+    warning: {
+      bg: "linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)",
+      border: "#fbbf24",
+      shadow: "rgba(245, 158, 11, 0.4)"
+    }
+  };
+  
+  const currentTheme = themeColors[type] || themeColors.success;
+
+  Object.assign(toast.style, {
+    position: 'fixed',
+    top: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    background: currentTheme.bg,
+    color: '#ffffff',
+    fontSize: '14px',
+    fontWeight: '600',
+    borderRadius: '12px',
+    border: `1px solid ${currentTheme.border}`,
+    boxShadow: `0 10px 25px -5px ${currentTheme.shadow}, 0 8px 10px -6px ${currentTheme.shadow}`,
+    zIndex: '999999',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    opacity: '0',
+    transform: 'translateY(-20px) scale(0.95)',
+    transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+    pointerEvents: 'none'
+  });
+
+  toast.innerHTML = `
+    <span style="font-size: 16px;">🔄</span>
+    <span>${message}</span>
+  `;
+
+  document.body.appendChild(toast);
+
+  // Trigger animations
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0) scale(1)';
+  });
+
+  // Hide and remove after 4.5 seconds
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-20px) scale(0.95)';
+    setTimeout(() => toast.remove(), 400);
+  }, 4500);
+}
+
+// Check for incoming messages (e.g. from popup request)
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'extractContext') {
+  if (request.action === "extractContext") {
     const result = extractConversation();
     sendResponse(result);
   }
   return true;
 });
 
+// Check if we have pending context injection at load time
+chrome.storage.local.get('pendingContext', (data) => {
+  if (data && data.pendingContext) {
+    const context = data.pendingContext;
+    const currentProvider = detectCurrentProvider();
+    
+    // Check if the domain matches the target and has not expired (e.g., within last 2 minutes)
+    const timeDiff = Date.now() - context.timestamp;
+    if (context.targetAI === currentProvider && timeDiff < 120000) {
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        startInjectionPolling(context.text);
+      } else {
+        window.addEventListener('DOMContentLoaded', () => {
+          startInjectionPolling(context.text);
+        });
+      }
+    }
+  }
+});
